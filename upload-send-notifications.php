@@ -78,7 +78,7 @@ if (!empty($found_notifications)) {
 		$file_data[$row['id']] = array(
 									'id'			=> $row['id'],
 									'filename'		=> $row['filename'],
-									'description'	=> $row['description']
+									'description'	=> htmlentities_allowed($row['description'])
 								);
 	}
 	
@@ -330,4 +330,3 @@ if (!empty($found_notifications)) {
 	 echo '<h2>Notifications sent query</h2><br />' . $notifications_sent_query . '<br /><br />';
 	 */
 }
-?>

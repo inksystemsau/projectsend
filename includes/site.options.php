@@ -13,6 +13,7 @@
  *
  * @return array
  */
+global $dbh;
 $options_values = array();
 try {
 	$options = $dbh->query("SELECT * FROM " . TABLE_OPTIONS);
@@ -223,8 +224,98 @@ if(!empty($options_values)) {
 	/**
 	 * For versions 757 and up
 	 */	
-	if (isset($options_values['clients_auto_approve'])) {
+	if (isset($options_values['clients_can_set_expiration_date'])) {
 		define('CLIENTS_CAN_SET_EXPIRATION_DATE',$options_values['clients_can_set_expiration_date']);
+	}
+
+	/**
+	 * For versions 837 and up
+	 */	
+	if (isset($options_values['clients_can_select_group'])) {
+		define('CLIENTS_CAN_SELECT_GROUP',$options_values['clients_can_select_group']);
+		define('DESCRIPTIONS_USE_CKEDITOR',$options_values['files_descriptions_use_ckeditor']);
+	}
+
+	/**
+	 * For versions 841 and up
+	 */	
+	if (isset($options_values['enable_landing_for_all_files'])) {
+		define('ENABLE_LANDING_FOR_ALL_FILES',$options_values['enable_landing_for_all_files']);
+	}
+
+	/**
+	 * For versions 842 and up
+	 */	
+	if (isset($options_values['footer_custom_enable'])) {
+		define('FOOTER_CUSTOM_ENABLE',$options_values['footer_custom_enable']);
+		define('FOOTER_CUSTOM_CONTENT',$options_values['footer_custom_content']);
+	}
+
+	/**
+	 * For versions 845 and up
+	 */	
+	if (isset($options_values['email_new_file_by_user_subject'])) {
+		/** Checkboxes */
+		define('EMAILS_FILE_BY_USER_USE_SUBJECT_CUSTOM',$options_values['email_new_file_by_user_subject_customize']);
+		define('EMAILS_FILE_BY_CLIENT_USE_SUBJECT_CUSTOM',$options_values['email_new_file_by_client_subject_customize']);
+		define('EMAILS_CLIENT_BY_USER_USE_SUBJECT_CUSTOM',$options_values['email_new_client_by_user_subject_customize']);
+		define('EMAILS_CLIENT_BY_SELF_USE_SUBJECT_CUSTOM',$options_values['email_new_client_by_self_subject_customize']);
+		define('EMAILS_NEW_USER_USE_SUBJECT_CUSTOM',$options_values['email_new_user_subject_customize']);
+		define('EMAILS_PASS_RESET_USE_SUBJECT_CUSTOM',$options_values['email_pass_reset_subject_customize']);
+		/** Subjects */
+		define('EMAILS_FILE_BY_USER_SUBJECT',$options_values['email_new_file_by_user_subject']);
+		define('EMAILS_FILE_BY_CLIENT_SUBJECT',$options_values['email_new_file_by_client_subject']);
+		define('EMAILS_CLIENT_BY_USER_SUBJECT',$options_values['email_new_client_by_user_subject']);
+		define('EMAILS_CLIENT_BY_SELF_SUBJECT',$options_values['email_new_client_by_self_subject']);
+		define('EMAILS_NEW_USER_SUBJECT',$options_values['email_new_user_subject']);
+		define('EMAILS_PASS_RESET_SUBJECT',$options_values['email_pass_reset_subject']);
+	}
+
+	/**
+	 * For versions 859 and up
+	 */	
+	if (isset($options_values['privacy_noindex_site'])) {
+		define('PRIVACY_NOINDEX_SITE',$options_values['privacy_noindex_site']);
+	}
+
+	/**
+	 * For versions 950 and up
+	 */	
+	if (isset($options_values['email_account_approve_subject'])) {
+		/** Checkboxes */
+		define('EMAILS_ACCOUNT_APPROVE_USE_SUBJECT_CUSTOM',$options_values['email_account_approve_subject_customize']);
+		define('EMAILS_ACCOUNT_DENY_USE_SUBJECT_CUSTOM',$options_values['email_account_deny_subject_customize']);
+		define('EMAILS_ACCOUNT_APPROVE_USE_CUSTOM',$options_values['email_account_approve_customize']);
+		define('EMAILS_ACCOUNT_DENY_USE_CUSTOM',$options_values['email_account_deny_customize']);
+		/** Subjects */
+		define('EMAILS_ACCOUNT_APPROVE_SUBJECT',$options_values['email_account_approve_subject']);
+		define('EMAILS_ACCOUNT_DENY_SUBJECT',$options_values['email_account_deny_subject']);
+		/** Email texts */
+		define('EMAILS_ACCOUNT_APPROVE_TEXT',$options_values['email_account_approve_text']);
+		define('EMAILS_ACCOUNT_DENY_TEXT',$options_values['email_account_deny_text']);
+	}
+
+	/**
+	 * For versions 1003 and up
+	 */	
+	if (isset($options_values['email_client_edited_subject_customize'])) {
+		/** Checkbox */
+		define('EMAILS_CLIENT_EDITED_USE_SUBJECT_CUSTOM',$options_values['email_client_edited_subject_customize']);
+		define('EMAILS_CLIENT_EDITED_USE_CUSTOM',$options_values['email_client_edited_customize']);
+		/** Subject */
+		define('EMAILS_CLIENT_EDITED_SUBJECT',$options_values['email_client_edited_subject']);
+		/** Text */
+		define('EMAILS_CLIENT_EDITED_TEXT',$options_values['email_client_edited_text']);
+	}
+
+	/**
+	 * For versions 1004 and up
+	 */	
+	if (isset($options_values['public_listing_page_enable'])) {
+		define('PUBLIC_LISTING_ENABLE',$options_values['public_listing_page_enable']);
+		define('PUBLIC_LISTING_LOGGED_ONLY',$options_values['public_listing_logged_only']);
+		define('PUBLIC_LISTING_SHOW_ALL_FILES',$options_values['public_listing_show_all_files']);
+		define('PUBLIC_LISTING_USE_DOWNLOAD_LINK',$options_values['public_listing_use_download_link']);
 	}
 
 	/**
@@ -242,6 +333,9 @@ if(!empty($options_values)) {
 if (defined('BASE_URI')) {
 	define('TIMTHUMB_URL',BASE_URI.'includes/timthumb/timthumb.php');
 	define('TIMTHUMB_ABS',ROOT_DIR.'/includes/timthumb/timthumb.php');
+
+	define('WIDGETS_FOLDER',ROOT_DIR.'/includes/widgets/');
+	define('WIDGETS_URL',BASE_URI.'includes/widgets/');
 }
 
 /**
@@ -257,4 +351,12 @@ if (!defined('RESULTS_PER_PAGE')) {
 	define('RESULTS_PER_PAGE', '10');
 	define('RESULTS_PER_PAGE_LOG', '15');
 }
-?>
+
+/**
+ * Landing page for public groups and files
+ */
+if (defined('BASE_URI')) {
+	define('PUBLIC_DOWNLOAD_URI',BASE_URI.'download.php');
+	define('PUBLIC_LANDING_URI',BASE_URI.'public.php');
+	define('PUBLIC_GROUP_URI',BASE_URI.'public.php');
+}

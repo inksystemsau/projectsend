@@ -7,18 +7,20 @@
  */
 
 /**
- * Check if ProjectSend is installed by looping over the main tables.
- * All tables must exist to verify the installation.
- * If any table is missing, the installation is considered corrupt.
+ * Check if ProjectSend is installed by trying to find the main users table.
+ * If it is missing, the installation is invalid.
  */
-function is_projectsend_installed() {
-	global $current_tables;
+function is_projectsend_installed()
+{
+	$tables_need = array(
+						TABLE_USERS
+					);
 
 	$tables_missing = 0;
 	/**
 	 * This table list is defined on sys.vars.php
 	 */
-	foreach ($current_tables as $table) {
+	foreach ($tables_need as $table) {
 		if ( !tableExists( $table ) ) {
 			$tables_missing++;
 		}
@@ -34,7 +36,8 @@ function is_projectsend_installed() {
 /**
  * Add any existing $_GET parameters as hidden fields on a form
  */
-function form_add_existing_parameters( $ignore = array() ) {
+function form_add_existing_parameters( $ignore = array() )
+{
 	// Don't add the pagination parameter
 	$ignore[] = 'page';
 	
@@ -60,22 +63,29 @@ function form_add_existing_parameters( $ignore = array() ) {
  * is either ASC or DESC.
  * Defaults to ORDER BY: id, ORDER: DESC
  */
-function sql_add_order( $table, $column = 'id', $initial_order = 'ASC' ) {
+function sql_add_order( $table, $column = 'id', $initial_order = 'ASC' )
+{
 	global $dbh;
 	$allowed_custom_sort_columns = array( 'download_count' );
 
 	$columns_query	= $dbh->query('SELECT * FROM ' . $table . ' LIMIT 1');
-	$columns_keys	= array_keys($columns_query->fetch(PDO::FETCH_ASSOC));
-	$columns_keys	= array_merge( $columns_keys, $allowed_custom_sort_columns );
-	$orderby		= ( isset( $_GET['orderby'] ) && in_array( $_GET['orderby'], $columns_keys ) ) ? $_GET['orderby'] : $column;
-
-	$order		= ( isset( $_GET['order'] ) ) ? strtoupper($_GET['order']) : $initial_order;
-    $order      = (preg_match("/^(DESC|ASC)$/",$order)) ? $order : $initial_order;
-
-	return " ORDER BY $orderby $order";
+	if ( $columns_query->rowCount() > 0 ) {
+		$columns_keys	= array_keys($columns_query->fetch(PDO::FETCH_ASSOC));
+		$columns_keys	= array_merge( $columns_keys, $allowed_custom_sort_columns );
+		$orderby		= ( isset( $_GET['orderby'] ) && in_array( $_GET['orderby'], $columns_keys ) ) ? $_GET['orderby'] : $column;
+	
+		$order		= ( isset( $_GET['order'] ) ) ? strtoupper($_GET['order']) : $initial_order;
+		$order      = (preg_match("/^(DESC|ASC)$/",$order)) ? $order : $initial_order;
+	
+		return " ORDER BY $orderby $order";
+	}
+	else {
+		return false;
+	}
 }
 
-function generate_password() {
+function generate_password()
+{
 	/**
 	 * Random compat library, a polyfill for PHP 7's random_bytes();
 	 * @link: https://github.com/paragonie/random_compat
@@ -102,7 +112,8 @@ function generate_password() {
  * Reads the lang folder and scans for .mo files. 
  * Returns an array of avaiable languages.
  */
-function get_available_languages() {
+function get_available_languages()
+{
 	global $locales_names;
 
 	$langs = array();
@@ -136,7 +147,8 @@ function get_available_languages() {
  * - Unique logged in clients downloads
  * - Total count
  */
-function generate_downloads_count( $id = null ) {
+function generate_downloads_count( $id = null )
+{
 	global $dbh;
 
 	$data = array();
@@ -160,10 +172,10 @@ function generate_downloads_count( $id = null ) {
 
 	while ( $row = $statement->fetch() ) {
 		$data[$row['file_id']] = array(
-									'file_id'			=> $row['file_id'],
-									'total'				=> $row['downloads'],
-									'unique_clients'	=> $row['unique_clients'],
-									'anonymous_users'	=> $row['anonymous_users'],
+									'file_id'			=> html_output($row['file_id']),
+									'total'				=> html_output($row['downloads']),
+									'unique_clients'	=> html_output($row['unique_clients']),
+									'anonymous_users'	=> html_output($row['anonymous_users']),
 								);
 	}
 	
@@ -177,7 +189,8 @@ function generate_downloads_count( $id = null ) {
  * @return bool TRUE if table exists, FALSE if no table found.
  * by esbite on http://stackoverflow.com/questions/1717495/check-if-a-database-table-exists-using-php-pdo
  */
-function tableExists($table) {
+function tableExists($table)
+{
 	global $dbh;
 
     try {
@@ -288,18 +301,19 @@ function get_client_by_id($client)
 
 	while ( $row = $statement->fetch() ) {
 		$information = array(
-							'id'			=> $row['id'],
-							'name'			=> $row['name'],
-							'username'		=> $row['user'],
-							'address'		=> $row['address'],
-							'phone'			=> $row['phone'],
-							'email'			=> $row['email'],
-							'notify'		=> $row['notify'],
-							'level'			=> $row['level'],
-							'active'		=> $row['active'],
-							'contact'		=> $row['contact'],
-							'created_date'	=> $row['timestamp'],
-							'created_by'	=> $row['created_by']
+							'id'					=> html_output($row['id']),
+							'username'			=> html_output($row['user']),
+							'name'				=> html_output($row['name']),
+							'address'			=> html_output($row['address']),
+							'phone'				=> html_output($row['phone']),
+							'email'				=> html_output($row['email']),
+							'notify'				=> html_output($row['notify']),
+							'level'				=> html_output($row['level']),
+							'active'				=> html_output($row['active']),
+							'max_file_size'	=> html_output($row['max_file_size']),
+							'contact'			=> html_output($row['contact']),
+							'created_date'		=> html_output($row['timestamp']),
+							'created_by'		=> html_output($row['created_by'])
 						);
 		if ( !empty( $information ) ) {
 			return $information;
@@ -326,18 +340,19 @@ function get_client_by_username($client)
 
 	while ( $row = $statement->fetch() ) {
 		$information = array(
-							'id'			=> $row['id'],
-							'name'			=> $row['name'],
-							'username'		=> $row['user'],
-							'address'		=> $row['address'],
-							'phone'			=> $row['phone'],
-							'email'			=> $row['email'],
-							'notify'		=> $row['notify'],
-							'level'			=> $row['level'],
-							'active'		=> $row['active'],
-							'contact'		=> $row['contact'],
-							'created_date'	=> $row['timestamp'],
-							'created_by'	=> $row['created_by']
+							'id'					=> html_output($row['id']),
+							'name'				=> html_output($row['name']),
+							'username'			=> html_output($row['user']),
+							'address'			=> html_output($row['address']),
+							'phone'				=> html_output($row['phone']),
+							'email'				=> html_output($row['email']),
+							'notify'				=> html_output($row['notify']),
+							'level'				=> html_output($row['level']),
+							'active'				=> html_output($row['active']),
+							'max_file_size'	=> html_output($row['max_file_size']),
+							'contact'			=> html_output($row['contact']),
+							'created_date'		=> html_output($row['timestamp']),
+							'created_by'		=> html_output($row['created_by'])
 						);
 		if ( !empty( $information ) ) {
 			return $information;
@@ -365,7 +380,7 @@ function get_logged_account_id($username)
 	$statement->setFetchMode(PDO::FETCH_ASSOC);
 
 	while ( $row = $statement->fetch() ) {
-		$return_id = $row['id'];
+		$return_id = html_output($row['id']);
 		if ( !empty( $return_id ) ) {
 			return $return_id;
 		}
@@ -393,7 +408,7 @@ function check_if_notify_client($client)
 
 	while ( $row = $statement->fetch() ) {
 		if ( $row['notify'] == '1' ) {
-			return $row['email'];
+			return html_output($row['email']);
 		}
 		else {
 			return false;
@@ -421,13 +436,14 @@ function get_user_by_username($user)
 	if ( $statement->rowCount() > 0 ) {
 		while ( $row = $statement->fetch() ) {
 			$information = array(
-								'id'			=> $row['id'],
-								'username'		=> $row['user'],
-								'name'			=> $row['name'],
-								'email'			=> $row['email'],
-								'level'			=> $row['level'],
-								'active'		=> $row['active'],
-								'created_date'	=> $row['timestamp']
+								'id'					=> html_output($row['id']),
+								'username'			=> html_output($row['user']),
+								'name'				=> html_output($row['name']),
+								'email'				=> html_output($row['email']),
+								'level'				=> html_output($row['level']),
+								'active'				=> html_output($row['active']),
+								'max_file_size'	=> html_output($row['max_file_size']),
+								'created_date'		=> html_output($row['timestamp'])
 							);
 			if ( !empty( $information ) ) {
 				return $information;
@@ -454,12 +470,13 @@ function get_user_by_id($id)
 
 	while ( $row = $statement->fetch() ) {
 		$information = array(
-							'id'			=> $row['id'],
-							'username'		=> $row['user'],
-							'name'			=> $row['name'],
-							'email'			=> $row['email'],
-							'level'			=> $row['level'],
-							'created_date'	=> $row['timestamp']
+							'id'					=> html_output($row['id']),
+							'username'			=> html_output($row['user']),
+							'name'				=> html_output($row['name']),
+							'email'				=> html_output($row['email']),
+							'level'				=> html_output($row['level']),
+							'max_file_size'	=> html_output($row['max_file_size']),
+							'created_date'		=> html_output($row['timestamp']),
 						);
 		if ( !empty( $information ) ) {
 			return $information;
@@ -487,9 +504,43 @@ function get_file_by_id($id)
 
 	while ( $row = $statement->fetch() ) {
 		$information = array(
-							'id'			=> $row['id'],
-							'url'			=> $row['url'],
-							'title'			=> $row['filename'],
+							'id'				=> html_output($row['id']),
+							'title'			=> html_output($row['filename']),
+							'original_url'	=> html_output($row['original_url']),
+							'url'				=> html_output($row['url']),
+						);
+		if ( !empty( $information ) ) {
+			return $information;
+		}
+		else {
+			return false;
+		}
+	}
+}
+
+
+/**
+ * Get all the group information knowing only the id
+ *
+ * @return array
+ */
+function get_group_by_id($id)
+{
+	global $dbh;
+	$statement = $dbh->prepare("SELECT * FROM " . TABLE_GROUPS . " WHERE id=:id");
+	$statement->bindParam(':id', $id, PDO::PARAM_INT);
+	$statement->execute();
+	$statement->setFetchMode(PDO::FETCH_ASSOC);
+
+	while ( $row = $statement->fetch() ) {
+		$information = array(
+							'id'				=> html_output($row['id']),
+							'created_by'	=> html_output($row['created_by']),
+							'created_date'	=> html_output($row['timestamp']),
+							'name'			=> html_output($row['name']),
+							'description'	=> html_output($row['description']),
+							'public'			=> html_output($row['public']),
+							'public_token'	=> html_output($row['public_token']),
 						);
 		if ( !empty( $information ) ) {
 			return $information;
@@ -512,7 +563,15 @@ function default_footer_info($logged = true)
 ?>
 	<footer>
 		<div id="footer">
-			<?php _e('Provided by', 'cftp_admin'); ?> <a href="<?php echo SYSTEM_URI; ?>" target="_blank"><?php echo SYSTEM_NAME; ?></a> <?php if ($logged == true) { _e('version', 'cftp_admin'); echo ' ' . CURRENT_VERSION; } ?> - <?php _e('Free software', 'cftp_admin'); ?>
+			<?php
+				if ( defined('FOOTER_CUSTOM_ENABLE') && FOOTER_CUSTOM_ENABLE == '1' ) {
+					echo strip_tags(FOOTER_CUSTOM_CONTENT, '<br><span><a><strong><em><b><i><u><s>');
+					//echo htmlentities_allowed(FOOTER_CUSTOM_CONTENT);
+				}
+				else {
+					_e('Provided by', 'cftp_admin'); ?> <a href="<?php echo SYSTEM_URI; ?>" target="_blank"><?php echo SYSTEM_NAME; ?></a> <?php if ($logged == true) { _e('version', 'cftp_admin'); echo ' ' . CURRENT_VERSION; } ?> - <?php _e('Free software', 'cftp_admin');
+				}
+			?>
 		</div>
 	</footer>
 <?php
@@ -649,14 +708,37 @@ function get_current_user_username()
 }
 
 /**
- * Wrapper for html_entities with default options
+ * Wrapper for htmlentities with default options
  * 
  */
 function html_output($str, $flags = ENT_QUOTES, $encoding = 'UTF-8', $double_encode = false)
 {
+	return htmlentities($str, $flags, $encoding, $double_encode);
+}
 
-   return htmlentities($str, $flags, $encoding, $double_encode);
+/**
+ * Allow some html tags for file descriptions on htmlentities
+ * 
+ */
+function htmlentities_allowed($str)
+{
+	$description = htmlentities($str);
+	$allowed_tags = array('i','b','strong','em','p','br','ul','ol','li','u','sup','sub','s');
 
+	$find = array();
+	$replace = array();
+
+	foreach ( $allowed_tags as $tag ) {
+		/** Opening tags */
+		$find[] = '&amp;lt;' . $tag . '&amp;gt;';
+		$replace[] = '<' . $tag . '>';
+		/** Closing tags */
+		$find[] = '&amp;lt;/' . $tag . '&amp;gt;';
+		$replace[] = '</' . $tag . '>';
+	}
+
+	$description = str_replace($find, $replace, $description);
+	return $description;
 }
 
 
@@ -856,12 +938,17 @@ function generate_logo_url()
 	$branding = array();
 	$branding['exists'] = false;
 
-	$branding['url'] = '/img/custom/logo/'.LOGO_FILENAME;
-	if (file_exists(ROOT_DIR.$branding['url'])) {
+	$logo_filename = LOGO_FILENAME;
+	if ( empty( $logo_filename ) ) {
+		$branding['filename'] = 'img/projectsend-logo.png';
+	}
+	else {
+		$branding['filename'] = 'img/custom/logo/'.LOGO_FILENAME;
+	}
+
+	if (file_exists(ROOT_DIR . '/' . $branding['filename'])) {
 		$branding['exists'] = true;
-		if (THUMBS_USE_ABSOLUTE == '1') {
-			$branding['url'] = BASE_URI.$branding['url'];
-		}
+		$branding['url'] = BASE_URI.$branding['filename'];
 	}
 	return $branding;
 }
@@ -885,7 +972,7 @@ function generate_branding_layout()
 
 	$layout = '<div class="row">
 					<div class="col-xs-12 branding_unlogged">
-						<img src="' . $branding_image . '" alt="' . THIS_INSTALL_SET_TITLE . '" />
+						<img src="' . $branding_image . '" alt="' . html_output(THIS_INSTALL_SET_TITLE) . '" />
 					</div>
 				</div>';
 
@@ -904,6 +991,31 @@ function prevent_direct_access()
 		exit;
 	}
 }
+
+
+/**
+ * Add a noindex to the header
+ */
+function meta_noindex()
+{
+	if ( defined('PRIVACY_NOINDEX_SITE') ) {
+		if ( PRIVACY_NOINDEX_SITE == 1 ) {
+			echo '<meta name="robots" content="noindex">';
+		}
+	}
+}
+
+/**
+ * Favicon meta tags
+ */
+function meta_favicon()
+{
+	$favicon_location = BASE_URI . 'img/favicon/';
+	echo '<link rel="shortcut icon" type="image/x-icon" href="' . BASE_URI . 'favicon.ico" />' . "\n";
+	echo '<link rel="icon" type="image/png" href="' . $favicon_location . 'favicon-32.png" sizes="32x32">' . "\n";
+	echo '<link rel="apple-touch-icon" href="' . $favicon_location . 'favicon-152.png" sizes="152x152">' . "\n";
+}
+
 
 /**
  * If password rules are set, show a message
@@ -954,6 +1066,47 @@ function password_notes()
 	return $pass_notes_output;
 }
 
+/**
+ * Adds default and custom css classes to the body.
+ */
+function add_body_class( $custom = '' )
+{
+	/** Remove query string */
+	$current_url = strtok( $_SERVER['REQUEST_URI'], '?' );
+	$classes = array('body');
+	
+	$pathinfo = pathinfo( $current_url );
+
+	if ( !empty( $pathinfo['extension'] ) ) {
+		$classes = array(
+						strpos( $pathinfo['filename'], "?" ),
+						str_replace('.', '-', $pathinfo['filename'] ),
+					);
+	}
+
+	if ( check_for_session( false ) ) {
+		$classes[] = 'logged-in';
+
+		global $client_info;
+		$logged_type = $client_info['level'] == '0' ? 'client' : 'admin';
+
+		$classes[] = 'logged-as-' . $logged_type;
+	}
+	
+	if ( !empty( $custom ) && is_array( $custom ) ) {
+		$classes = array_merge( $classes, $custom );
+	}
+
+	if ( !in_array('template-default', $classes ) ) {
+		$classes[] = 'backend';
+	}
+
+	$classes = array_filter( array_unique( $classes ) );
+
+	$render = 'class="' . implode(' ', $classes) . '"';
+	return $render;
+}
+
 
 /**
  * Creates a standarized download link. Used on
@@ -962,11 +1115,7 @@ function password_notes()
 function make_download_link($file_info)
 {
 	global $client_info;
-	$download_link = BASE_URI.
-						'process.php?do=download
-						&amp;client='.CURRENT_USER_USERNAME.'
-						&amp;client_id='.$client_info['id'].'
-						&amp;id='.$file_info['id'];
+	$download_link = BASE_URI.'process.php?do=download&amp;id='.$file_info['id'];
 	/*
 						&amp;origin='.$file_info['origin'];
 	if (!empty($file_info['group_id'])) {
@@ -974,6 +1123,16 @@ function make_download_link($file_info)
 	}
 	*/
 	return $download_link;
+}
+
+/**
+ * print_r a variable with a more human readable format
+ */
+function print_array( $data = array() )
+{
+	echo '<pre>';
+	print_r($data);
+	echo '</pre>';
 }
 
 
@@ -985,11 +1144,11 @@ function render_log_action($params)
 	$action = $params['action'];
 	$timestamp = $params['timestamp'];
 	$owner_id = $params['owner_id'];
-	$owner_user = $params['owner_user'];
+	$owner_user = html_output($params['owner_user']);
 	$affected_file = $params['affected_file'];
 	$affected_file_name = $params['affected_file_name'];
 	$affected_account = $params['affected_account'];
-	$affected_account_name = $params['affected_account_name'];
+	$affected_account_name = html_output($params['affected_account_name']);
 	
 	switch ($action) {
 		case 0:
@@ -1226,6 +1385,18 @@ function render_log_action($params)
 			$action_text = __('downloaded the file','cftp_admin');
 			$part2 = $affected_file_name;
 			break;
+		case 38:
+			$action_ico = 'client-request-processed';
+			$part1 = $owner_user;
+			$action_text = __('processed an account request for','cftp_admin');
+			$part2 = $affected_account_name;
+			break;
+		case 39:
+			$action_ico = 'client-request-processed';
+			$part1 = $owner_user;
+			$action_text = __('processed group memberships requests for','cftp_admin');
+			$part2 = $affected_account_name;
+			break;
 	}
 	
 	$date = date(TIMEFORMAT_USE,strtotime($timestamp));
@@ -1240,4 +1411,3 @@ function render_log_action($params)
 	
 	return $log;
 }
-?>

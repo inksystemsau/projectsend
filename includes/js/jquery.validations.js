@@ -75,7 +75,7 @@ function is_length(field,minsize,maxsize,error) {
 }
 
 function is_email(field,error) {
-	var reg = /^([^@])+\@([A-Za-z0-9_\-\.])+\.([A-Za-z]{2,4})$/;
+	var reg = /^([^@])+\@([A-Za-z0-9_\-\.])+\.([A-Za-z]{2,})$/;
 	var address = field.value;
 	if (reg.test(address) == false) {
 		add_error_to_field(field, error);
@@ -86,6 +86,13 @@ function is_email(field,error) {
 function is_alpha(field,error) {
 	var checkme = field.value;
 	if (!(checkme.match(/^[a-zA-Z0-9]+$/))) {
+		add_error_to_field(field, error);
+	}
+}
+
+function is_number(field,error) {
+	var checkme = field.value;
+	if (!(checkme.match(/^[0-9]+$/))) {
 		add_error_to_field(field, error);
 	}
 }

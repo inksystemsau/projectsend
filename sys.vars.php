@@ -14,7 +14,7 @@ session_start();
  * Current version.
  * Updated only when releasing a new downloadable complete version.
  */
-define('CURRENT_VERSION', 'r757');
+define('CURRENT_VERSION', 'r1022');
 
 /**
  * Fix for including external files when on HTTPS.
@@ -29,6 +29,12 @@ define('PROTOCOL', empty($_SERVER['HTTPS'])? 'http' : 'https');
  * - Enables the PDOEX extension (on the database class) to count queries
  */
 define('DEBUG', false);
+
+/**
+ * IS_DEV is set to true during development to show a sitewide remainder
+ * of the app unreleased status.
+ */
+define('IS_DEV', true);
 
 /**
  * Turn off reporting of PHP errors, warnings and notices.
@@ -51,13 +57,13 @@ define('UPLOAD_TIME_LIMIT', 120*60);
 /**
  * Define the RSS url to use on the home news list.
  */
-define('NEWS_FEED_URI','http://www.projectsend.org/feed/');
+define('NEWS_FEED_URI','https://www.projectsend.org/feed/');
 
 /**
  * Define the Feed from where to take the latest version
  * number.
  */
-define('UPDATES_FEED_URI','http://projectsend.org/updates/versions.xml');
+define('UPDATES_FEED_URI','https://projectsend.org/updates/versions.xml');
 
 /**
  * Check if the personal configuration file exists
@@ -121,17 +127,36 @@ define('TABLE_OPTIONS', TABLES_PREFIX . 'options');
 define('TABLE_USERS', TABLES_PREFIX . 'users');
 define('TABLE_GROUPS', TABLES_PREFIX . 'groups');
 define('TABLE_MEMBERS', TABLES_PREFIX . 'members');
+define('TABLE_MEMBERS_REQUESTS', TABLES_PREFIX . 'members_requests');
 define('TABLE_FOLDERS', TABLES_PREFIX . 'folders');
 define('TABLE_CATEGORIES', TABLES_PREFIX . 'categories');
 define('TABLE_CATEGORIES_RELATIONS', TABLES_PREFIX . 'categories_relations');
 define('TABLE_LOG', TABLES_PREFIX . 'actions_log');
 define('TABLE_PASSWORD_RESET', TABLES_PREFIX . 'password_reset');
 
-$current_tables = array(
-						TABLE_FILES,
-						TABLE_OPTIONS,
-						TABLE_USERS
-					);
+$original_basic_tables = array(
+								TABLE_FILES,
+								TABLE_OPTIONS,
+								TABLE_USERS
+							);
+
+$all_system_tables = array(
+							'files',
+							'files_relations',
+							'downloads',
+							'notifications',
+							'options',
+							'users',
+							'groups',
+							'members',
+							'members_requests',
+							'folders',
+							'categories',
+							'categories_relations',
+							'actions_log',
+							'password_reset',
+						);
+
 //$current_tables = array(TABLE_FILES,TABLE_FILES_RELATIONS,TABLE_OPTIONS,TABLE_USERS,TABLE_GROUPS,TABLE_MEMBERS,TABLE_FOLDERS,TABLES_PREFIX,TABLE_LOG,TABLE_CATEGORIES,TABLE_CATEGORIES_RELATIONS);
 
 /**
@@ -152,10 +177,19 @@ define('MAX_GENERATE_PASS_CHARS', 20);
 define('COOKIE_EXP_TIME', 60*60*24*30);
 
 /**
+ * Time (in seconds) after which the session becomes invalid.
+ * Default is disabled and time is set to a huge value (1 month)
+ * Case uses must be analyzed before enabling this function
+ */
+define('SESSION_TIMEOUT_EXPIRE', true);
+$session_expire_time = 31*24*60*60; // 31 days * 24 hours * 60 minutes * 60 seconds
+define('SESSION_EXPIRE_TIME', $session_expire_time);
+
+/**
  * Define the folder where uploaded files will reside
  */
 define('UPLOADED_FILES_FOLDER', ROOT_DIR.'/upload/files/');
-define('UPLOADED_FILES_URL', '/upload/files/');
+define('UPLOADED_FILES_URL', 'upload/files/');
 
 /**
  * Define the folder where the uploaded files are stored before
@@ -200,4 +234,3 @@ if (!defined('DB_DRIVER')) {
  */
 define('LINK_DOC_RECAPTCHA', 'https://developers.google.com/recaptcha/docs/start');
 define('LINK_DOC_GOOGLE_SIGN_IN', 'https://developers.google.com/identity/protocols/OpenIDConnect');
-?>

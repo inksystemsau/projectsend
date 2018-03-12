@@ -126,27 +126,46 @@ while ( $row = $sql_client_categories->fetch() ) {
 }
 
 if ( !empty( $cat_ids ) ) {
-	$get_categories	= get_categories(
-									array(
-										'id'	=> $cat_ids,
-									)
-								);
+	$get_categories	= get_categories();
 }
 /**
  * With the categories generated, keep only the files
  * that are assigned to the selected one.
+ * also include parent selection
  */
+
 if ( !empty( $category_filter ) && $category_filter != '0' ) {
-	$filtered_file_ids = array();
-	foreach ( $files_keep as $keep_file_id => $keep_cat_ids ) {
-		if ( in_array( $category_filter, $keep_cat_ids ) ) {
-			$filtered_file_ids[] = $keep_file_id;
-		}
-	}
-	$ids_to_search = implode(',', $filtered_file_ids);
+
+    $tmpSQL = "SELECT id FROM " . TABLE_CATEGORIES . " WHERE parent = :parent_id";
+    $sql_client_categories_parent = $dbh->prepare( $tmpSQL );
+    $sql_client_categories_parent->bindParam(':parent_id', $category_filter);
+    $sql_client_categories_parent->execute();
+    $sql_client_categories_parent->setFetchMode(PDO::FETCH_ASSOC);
+
+    $tmpChildIDs = array();
+
+    while ( $row = $sql_client_categories_parent->fetch() ) {
+        array_push($tmpChildIDs, $row['id']);
+    }
+
+    $filtered_file_ids = array();
+
+    foreach ( $files_keep as $keep_file_id => $keep_cat_ids ) {
+        if ( in_array( $category_filter, $keep_cat_ids)) {
+            $filtered_file_ids[] = $keep_file_id;
+        } else {
+            foreach ($keep_cat_ids as $cat_id) {
+                if (in_array($cat_id, $tmpChildIDs)) {
+                    $filtered_file_ids[] = $keep_file_id;
+                    break;
+                }
+            }
+        }
+    }
+    $ids_to_search = implode(',', $filtered_file_ids);
 }
 else {
-	$ids_to_search = implode(',', $found_unique_files_ids);
+    $ids_to_search = implode(',', $found_unique_files_ids);
 }
 
 /** Create the files list */
@@ -162,12 +181,12 @@ if (!empty($found_own_files_ids) || !empty($found_group_files_ids)) {
 					);
 
 	/** Add the search terms */	
-	if ( isset($_GET['search']) && !empty($_GET['search']) ) {
+	if ( isset($_POST['search']) && !empty($_POST['search']) ) {
 		$files_query		.= " AND (filename LIKE :title OR description LIKE :description)";
 		$no_results_error	= 'search';
 
-		$params[':title']		= '%'.$_GET['search'].'%';
-		$params[':description']	= '%'.$_GET['search'].'%';
+		$params[':title']		= '%'.$_POST['search'].'%';
+		$params[':description']	= '%'.$_POST['search'].'%';
 	}
 	
 	$sql_files = $dbh->prepare( $files_query );

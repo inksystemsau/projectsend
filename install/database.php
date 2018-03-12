@@ -18,12 +18,13 @@ if (defined('TRY_INSTALL')) {
 					'query'	=> 'CREATE TABLE IF NOT EXISTS `'.TABLE_FILES.'` (
 								  `id` int(11) NOT NULL AUTO_INCREMENT,
 								  `url` text NOT NULL,
+								  `original_url` text NOT NULL,
 								  `filename` text NOT NULL,
 								  `description` text NOT NULL,
 								  `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
 								  `uploader` varchar('.MAX_USER_CHARS.') NOT NULL,
 								  `expires` INT(1) NOT NULL default \'0\',
-								  `expiry_date` TIMESTAMP NOT NULL DEFAULT \'0000-00-00 00:00:00\',
+								  `expiry_date` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
 								  `public_allow` INT(1) NOT NULL default \'0\',
 								  `public_token` varchar(32) NULL,
 								  PRIMARY KEY (`id`)
@@ -60,6 +61,9 @@ if (defined('TRY_INSTALL')) {
 								  `contact` text COLLATE utf8_general_ci NULL,
 								  `created_by` varchar('.MAX_USER_CHARS.') NULL,
 								  `active` tinyint(1) NOT NULL DEFAULT \'1\',
+								  `account_requested` tinyint(1) NOT NULL DEFAULT \'0\',
+								  `account_denied` tinyint(1) NOT NULL DEFAULT \'0\',
+								  `max_file_size` int(20)  NOT NULL DEFAULT \'0\',
 								  PRIMARY KEY (`id`)
 								) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 								',
@@ -74,6 +78,8 @@ if (defined('TRY_INSTALL')) {
 								  `created_by` varchar(32) NOT NULL,
 								  `name` varchar(32) NOT NULL,
 								  `description` text NOT NULL,
+								  `public` tinyint(1) NOT NULL DEFAULT \'0\',
+								  `public_token` varchar(32) NULL,
 								  PRIMARY KEY (`id`)
 								) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 								',
@@ -95,8 +101,25 @@ if (defined('TRY_INSTALL')) {
 								',
 					'params' => array(),
 		),
-		
+
 		'5' =>  array(
+					'table'	=> TABLE_MEMBERS_REQUESTS,
+					'query'	=> 'CREATE TABLE IF NOT EXISTS `'.TABLE_MEMBERS_REQUESTS.'` (
+								  `id` int(11) NOT NULL AUTO_INCREMENT,
+								  `timestamp` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP(),
+								  `requested_by` varchar(32) NOT NULL,
+								  `client_id` int(11) NOT NULL,
+								  `group_id` int(11) NOT NULL,
+								  `denied` int(1) NOT NULL DEFAULT \'0\',
+								  PRIMARY KEY (`id`),
+								  FOREIGN KEY (`client_id`) REFERENCES '.TABLE_USERS.'(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+								  FOREIGN KEY (`group_id`) REFERENCES '.TABLE_GROUPS.'(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+								) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
+								',
+					'params' => array(),
+		),
+		
+		'6' =>  array(
 					'table'	=> TABLE_FOLDERS,
 					'query'	=> 'CREATE TABLE IF NOT EXISTS `'.TABLE_FOLDERS.'` (
 								  `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -114,7 +137,7 @@ if (defined('TRY_INSTALL')) {
 					'params' => array(),
 		),
 		
-		'6' =>  array(
+		'7' =>  array(
 					'table'	=> TABLE_FILES_RELATIONS,
 					'query'	=> 'CREATE TABLE IF NOT EXISTS `'.TABLE_FILES_RELATIONS.'` (
 								  `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -135,7 +158,7 @@ if (defined('TRY_INSTALL')) {
 					'params' => array(),
 		),
 		
-		'7' =>  array(
+		'8' =>  array(
 					'table'	=> TABLE_LOG,
 					'query'	=> 'CREATE TABLE IF NOT EXISTS `'.TABLE_LOG.'` (
 								  `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -153,7 +176,7 @@ if (defined('TRY_INSTALL')) {
 					'params' => array(),
 		),
 		
-		'8' =>  array(
+		'9' =>  array(
 					'table'	=> TABLE_NOTIFICATIONS,
 					'query'	=> 'CREATE TABLE IF NOT EXISTS `'.TABLE_NOTIFICATIONS.'` (
 								  `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -171,7 +194,7 @@ if (defined('TRY_INSTALL')) {
 					'params' => array(),
 		),
 		
-		'9' =>  array(
+		'10' =>  array(
 					'table'	=> TABLE_PASSWORD_RESET,
 					'query'	=> 'CREATE TABLE IF NOT EXISTS `'.TABLE_PASSWORD_RESET.'` (
 								  `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -186,7 +209,7 @@ if (defined('TRY_INSTALL')) {
 					'params' => array(),
 		),
 	
-		'10' =>  array(
+		'11' =>  array(
 					'table'	=> TABLE_DOWNLOADS,
 					'query'	=> 'CREATE TABLE IF NOT EXISTS `'.TABLE_DOWNLOADS.'` (
 								  `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -204,7 +227,7 @@ if (defined('TRY_INSTALL')) {
 					'params' => array(),
 		),
 	
-		'11' =>  array(
+		'12' =>  array(
 					'table'	=> '',
 					'query'	=> "INSERT INTO ".TABLE_OPTIONS." (name, value) VALUES
 								('base_uri', :base_uri),
@@ -278,7 +301,41 @@ if (defined('TRY_INSTALL')) {
 								('google_signin_enabled', '0'),
 								('recaptcha_enabled', '0'),
 								('recaptcha_site_key', ''),
-								('recaptcha_secret_key', '')
+								('recaptcha_secret_key', ''),
+								('clients_can_select_group', 'none'),
+								('files_descriptions_use_ckeditor', '0'),
+								('enable_landing_for_all_files', '0'),
+								('footer_custom_enable', '0'),
+								('footer_custom_content', ''),
+								('email_new_file_by_user_subject_customize', '0'),
+								('email_new_file_by_client_subject_customize', '0'),
+								('email_new_client_by_user_subject_customize', '0'),
+								('email_new_client_by_self_subject_customize', '0'),
+								('email_new_user_subject_customize', '0'),
+								('email_pass_reset_subject_customize', '0'),
+								('email_new_file_by_user_subject', ''),
+								('email_new_file_by_client_subject', ''),
+								('email_new_client_by_user_subject', ''),
+								('email_new_client_by_self_subject', ''),
+								('email_new_user_subject', ''),
+								('email_pass_reset_subject', ''),
+								('privacy_noindex_site', '0'),
+								('email_account_approve_subject_customize', '0'),
+								('email_account_deny_subject_customize', '0'),
+								('email_account_approve_customize', '0'),
+								('email_account_deny_customize', '0'),
+								('email_account_approve_subject', ''),
+								('email_account_deny_subject', ''),
+								('email_account_approve_text', ''),
+								('email_account_deny_text', ''),
+								('email_client_edited_subject_customize', '0'),
+								('email_client_edited_customize', '0'),
+								('email_client_edited_subject', ''),
+								('email_client_edited_text', ''),
+								('public_listing_page_enable', '0'),
+								('public_listing_logged_only', '0'),
+								('public_listing_show_all_files', '0'),
+								('public_listing_use_download_link', '0')
 								",
 					'params' => array(
 										':base_uri'	=> $base_uri,
@@ -290,7 +347,7 @@ if (defined('TRY_INSTALL')) {
 								),
 		),
 		
-		'12' =>  array(
+		'13' =>  array(
 						'table'	=> '',
 						'query'	=> "INSERT INTO ".TABLE_USERS." (id, user, password, name, email, level, active) VALUES
 									(1, :username, :password, :name, :email, 9, 1)",
@@ -302,7 +359,7 @@ if (defined('TRY_INSTALL')) {
 						),
 		),
 
-		'13' =>  array(
+		'14' =>  array(
 					'table'	=> TABLE_CATEGORIES,
 					'query'	=> 'CREATE TABLE IF NOT EXISTS `'.TABLE_CATEGORIES.'` (
 								  `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -318,7 +375,7 @@ if (defined('TRY_INSTALL')) {
 					'params' => array(),
 		),
 		
-		'14' =>  array(
+		'15' =>  array(
 					'table'	=> TABLE_CATEGORIES_RELATIONS,
 					'query'	=> 'CREATE TABLE IF NOT EXISTS `'.TABLE_CATEGORIES_RELATIONS.'` (
 								  `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -335,4 +392,3 @@ if (defined('TRY_INSTALL')) {
 		
 	);
 }
-?>
